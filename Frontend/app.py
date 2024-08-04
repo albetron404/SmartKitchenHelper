@@ -1,43 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import sys
-import csv
 import os
-import re
+import importlib.util
 
-# Set the path to include pythonscripts directory for importing
-sys.path.append('../pythonscripts')
+# Define the correct relative path to user_db.py
+current_dir = os.path.dirname(__file__)
+user_db_path = os.path.join(current_dir, 'pythonscripts/user_db.py')
 
-# Create Flask app and specify the template and static folders
+# Ensure the path is absolute
+user_db_path = os.path.abspath(user_db_path)
+
+# Load the module from the specified path
+spec = importlib.util.spec_from_file_location("user_db", user_db_path)
+user_db = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(user_db)
+
 app = Flask(__name__, template_folder='pages', static_folder='assets')
 app.secret_key = 'your_secret_key'  # Replace 'your_secret_key' with a strong secret key
-
-# Function to check if user already exists
-def check_user_exists(email):
-    filename = os.path.join(os.path.dirname(__file__), '../userdb.csv')
-    if not os.path.isfile(filename):
-        return None
-
-    with open(filename, 'r') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            # Case-insensitive email check
-            if row['email'].lower() == email.lower():
-                return row
-    return None
-
-# Function to validate password strength
-def validate_password(password):
-    # Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character
-    pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$'
-    if re.match(pattern, password):
-        return True
-    return False
-
-# Function to validate username
-def validate_username(username):
-    # Username should only contain alphabets and underscores
-    pattern = r'^[A-Za-z_]+$'
-    return re.match(pattern, username) is not None
 
 # Route for the signup page
 @app.route('/signup', methods=['GET', 'POST'])
@@ -56,31 +35,22 @@ def signup():
             return render_template('signup.html', error=error)
 
         # Validate username
-        if not validate_username(username):
+        if not user_db.validate_username(username):
             error = "Username should contain only alphabets and underscores."
             return render_template('signup.html', error=error)
 
         # Validate password strength
-        if not validate_password(password):
+        if not user_db.is_valid_password(password):
             error = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
             return render_template('signup.html', error=error)
 
         # Check if the user already exists
-        if check_user_exists(email):
+        if user_db.is_duplicate_email(email, 'userdb.csv'):
             error = "User already exists. Please log in."
             return render_template('signup.html', error=error)
 
-        # Logic to save the new user in the database or CSV
-        with open('../userdb.csv', 'a', newline='') as csvfile:
-            fieldnames = ['firstname', 'lastname', 'email', 'username', 'password']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow({
-                'firstname': firstname,
-                'lastname': lastname,
-                'email': email.lower(),  # Save email in lowercase
-                'username': username,
-                'password': password
-            })
+        # Proceed with signup if validations pass
+        user_db.signup_user(firstname, lastname, email, username, password)
 
         return redirect(url_for('login'))  # Redirect to the login page after successful signup
 
@@ -95,7 +65,7 @@ def login():
         password = request.form['password']
 
         # Check if the user exists in the CSV
-        user = check_user_exists(email)
+        user = user_db.check_user_exists(email)
 
         if user:
             # Now verify the password
