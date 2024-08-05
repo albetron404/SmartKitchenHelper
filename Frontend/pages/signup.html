@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Smart Kitchen Helper</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="../assets/css/styles.css">
     <style>
         /* Global Styles */
         body {
@@ -145,21 +145,21 @@
 
 <body>
     <div class="signup-container">
-        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Smart Kitchen Helper Logo">
+        <img src="../assets/images/logo.png" alt="Smart Kitchen Helper Logo">
         <h2>Create Your Account</h2>
-        <!-- Update the form action to submit to Flask route -->
-        <form id="signupForm" action="{{ url_for('signup') }}" method="POST">
+        <!-- Update the form action to submit to the server -->
+        <form id="signupForm" action="signup.html" method="POST">
             <label for="firstname">First Name:</label>
-            <input type="text" id="firstname" name="firstname" placeholder="Enter your first name" required pattern="[A-Za-z]+" title="First name should contain only alphabets.">
+            <input type="text" id="firstname" name="firstname" placeholder="Enter your first name" required>
 
             <label for="lastname">Last Name:</label>
-            <input type="text" id="lastname" name="lastname" placeholder="Enter your last name" required pattern="[A-Za-z]+" title="Last name should contain only alphabets.">
+            <input type="text" id="lastname" name="lastname" placeholder="Enter your last name" required>
 
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" placeholder="Enter your email" required>
 
             <label for="username">Username:</label>
-            <input type="text" id="username" name="username" placeholder="Choose a username" required pattern="[A-Za-z_]+" title="Username should contain only alphabets and underscores.">
+            <input type="text" id="username" name="username" placeholder="Enter your username" required>
 
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" placeholder="Create a password" required>
@@ -167,17 +167,11 @@
             <label for="confirm-password">Confirm Password:</label>
             <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
 
-            <div class="error-message" id="error-message">Passwords do not match!</div>
+            <div class="error-message" id="error-message"></div>
 
             <button type="submit">Sign Up</button>
         </form>
-        <p>or sign up with</p>
-        <div class="social-signup">
-            <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google Signup" id="googleLogin">
-            <img src="{{ url_for('static', filename='images/facebook-icon.png') }}" alt="Facebook Signup" id="facebookLogin">
-            <img src="{{ url_for('static', filename='images/twitter-icon.png') }}" alt="Twitter Signup" id="twitterLogin">
-        </div>
-        <a href="{{ url_for('login') }}">Already have an account? Login here</a>
+        <a href="login.html">Already have an account? Login here</a>
     </div>
 
     <script>
@@ -188,32 +182,11 @@
 
             if (password !== confirmPassword) {
                 event.preventDefault();
-                errorMessage.textContent = 'Passwords do not match!';
                 errorMessage.style.display = 'block';
+                errorMessage.textContent = "Passwords do not match!";
             } else {
                 errorMessage.style.display = 'none';
             }
-        });
-
-        // Mock social media login functions
-        function socialLogin(platform) {
-            const firstname = "John"; // Assume we got these details from the social platform
-            const lastname = "Doe";
-            const username = `${firstname} ${lastname}`;
-            alert(`Logged in with ${platform}: ${username}`);
-            window.location.href = `index.html?username=${encodeURIComponent(username)}`;
-        }
-
-        document.getElementById('googleLogin').addEventListener('click', function() {
-            socialLogin('Google');
-        });
-
-        document.getElementById('facebookLogin').addEventListener('click', function() {
-            socialLogin('Facebook');
-        });
-
-        document.getElementById('twitterLogin').addEventListener('click', function() {
-            socialLogin('Twitter');
         });
     </script>
 </body>

@@ -18,8 +18,37 @@ spec.loader.exec_module(user_db)
 app = Flask(__name__, template_folder='pages', static_folder='assets')
 app.secret_key = 'your_secret_key'  # Replace 'your_secret_key' with a strong secret key
 
+# Route for the index page (landing page)
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Route for the login page
+@app.route('/login.html', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+
+        # Check if the user exists in the CSV
+        user = user_db.check_user_exists(email)
+
+        if user:
+            # Now verify the password
+            if user['password'] == password:
+                session['username'] = f"{user['firstname']} {user['lastname']}"
+                # Redirect to the homepage with user details
+                return redirect(url_for('homepage', firstname=user['firstname'], lastname=user['lastname'], username=user['username']))
+            else:
+                error = "Invalid password. Please try again."
+        else:
+            error = "User not found. Please sign up first."
+
+    return render_template('login.html', error=error)
+
 # Route for the signup page
-@app.route('/signup', methods=['GET', 'POST'])
+@app.route('/signup.html', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         firstname = request.form['firstname']
@@ -45,60 +74,56 @@ def signup():
             return render_template('signup.html', error=error)
 
         # Check if the user already exists
-        if user_db.is_duplicate_email(email, 'userdb.csv'):
+        if user_db.is_duplicate_email(email):
             error = "User already exists. Please log in."
-            return render_template('signup.html', error=error)
+            return redirect(url_for('login'))
 
         # Proceed with signup if validations pass
-        user_db.signup_user(firstname, lastname, email, username, password)
-
-        return redirect(url_for('login'))  # Redirect to the login page after successful signup
+        signup_response = user_db.signup_user(firstname, lastname, email, username, password)
+        
+        if signup_response["status"] == "success":
+            user = signup_response["user"]
+            session['username'] = f"{user['firstname']} {user['lastname']}"
+            # Redirect to the homepage with user details
+            return redirect(url_for('homepage', firstname=user['firstname'], lastname=user['lastname'], username=user['username']))
+        else:
+            error = signup_response["message"]
+            return render_template('signup.html', error=error)
 
     return render_template('signup.html')
 
-# Route for the login page
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-
-        # Check if the user exists in the CSV
-        user = user_db.check_user_exists(email)
-
-        if user:
-            # Now verify the password
-            if user['password'] == password:
-                session['username'] = f"{user['firstname']} {user['lastname']}"
-                return redirect(url_for('index'))
-            else:
-                error = "Invalid password. Please try again."
-        else:
-            error = "User not found. Please sign up first."
-
-    return render_template('login.html', error=error)
-
-# Route for the index page (after login)
-@app.route('/')
-def index():
+# Route for the homepage
+@app.route('/homepage.html')
+def homepage():
     if 'username' in session:
-        return render_template('index.html', username=session['username'])
+        firstname = request.args.get('firstname')
+        lastname = request.args.get('lastname')
+        username = request.args.get('username')
+        return render_template('homepage.html', firstname=firstname, lastname=lastname, username=username)
     else:
         return redirect(url_for('login'))
 
 # Route for the forgot password page
-@app.route('/forgot_password', methods=['GET', 'POST'])
+@app.route('/forgot_password.html', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        # Process the forgot password request
         email = request.form['email']
-        # Logic to send a reset link to the user's email would go here
-        return redirect(url_for('login'))  # Redirect back to login after processing
+        user = user_db.check_user_exists(email)
+
+        if user:
+            # Logic to send a reset link to the user's email would go here
+            return redirect(url_for('password_reset', email=email))
+        else:
+            error = "Email not found. Please try again."
+            return render_template('forgot_password.html', error=error)
     
     return render_template('forgot_password.html')
 
-# Other routes can be added here...
+# Route for the password reset page
+@app.route('/password_reset.html')
+def password_reset():
+    email = request.args.get('email')
+    return render_template('password_reset.html', email=email)
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
